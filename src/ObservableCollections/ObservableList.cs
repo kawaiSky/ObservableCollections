@@ -134,6 +134,14 @@ namespace ObservableCollections
                 list.CopyTo(array, arrayIndex);
             }
         }
+        
+        public void CopyTo(int index, T[] array, int arrayIndex, int count)
+        {
+            lock (SyncRoot)
+            {
+                list.CopyTo(index,array,arrayIndex,count);
+            }
+        }
 
         public IEnumerator<T> GetEnumerator()
         {

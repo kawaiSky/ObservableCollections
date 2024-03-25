@@ -36,6 +36,7 @@ namespace ObservableCollections
 
             public object SyncRoot { get; }
 
+            private bool ReuseMode;
             public View(ObservableList<T> source, Func<T, TView> selector, bool reverse)
             {
                 this.source = source;
@@ -48,6 +49,11 @@ namespace ObservableCollections
                     this.list = source.list.Select(x => (x, selector(x))).ToList();
                     this.source.CollectionChanged += SourceCollectionChanged;
                 }
+            }
+
+            public void SetReuseMode(bool reused)
+            {
+                this.ReuseMode = reused;
             }
 
             public int Count
@@ -211,10 +217,22 @@ namespace ObservableCollections
                         case NotifyCollectionChangedAction.Replace:
                             // ObservableList does not support replace range
                         {
-                            var v = (e.NewItem, selector(e.NewItem));
-                            var ov = (e.OldItem, list[e.OldStartingIndex].Item2);
-                            list[e.NewStartingIndex] = v;
-                            filter.InvokeOnReplace(v, ov, e.NewStartingIndex);
+                            var old = list[e.OldStartingIndex];
+                            if (ReuseMode)
+                            {
+                                //重用模式 不生成新的 物体
+                                var v = (e.NewItem, old.Item2);
+                                var ov = (e.OldItem, old.Item2);
+                                old.Item1 = e.NewItem;
+                                filter.InvokeOnReplace(v, ov, e.NewStartingIndex);
+                            }
+                            else
+                            {
+                                var v = (e.NewItem, selector(e.NewItem));
+                                var ov = (e.OldItem, old.Item2);
+                                list[e.NewStartingIndex] = v;
+                                filter.InvokeOnReplace(v, ov, e.NewStartingIndex);
+                            }
                             break;
                         }
                         case NotifyCollectionChangedAction.Move:
